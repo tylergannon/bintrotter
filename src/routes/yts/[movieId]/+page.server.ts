@@ -8,6 +8,5 @@ export async function load({ params, platform, fetch }) {
 		() => ytsDetail(params.movieId, fetch),
 		7200
 	);
-	console.log(ytsData)
 	return { ytsData };
 }

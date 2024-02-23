@@ -19,12 +19,12 @@
 			<LogoLink />
 			<nav class="flex items-center gap-6 text-lg text-emerald-400">
 				Do something cool, finally!
-				<a href="/" class={linkClass(path==="/")}
+				<a href="/yts" class={linkClass(path==="/yts")}
 					>YTS</a
 				>
 				<a
 					href="/tpb"
-					class={linkClass(path === "tpb")}>Pirate Bay</a
+					class={linkClass(path === "/tpb")}>Pirate Bay</a
 				>
 			</nav>
 		</div>

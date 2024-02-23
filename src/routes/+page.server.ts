@@ -5,11 +5,7 @@ import { getItemFromKv } from '$lib/kv';
 
 const ONE_DAY = 3600 * 24;
 
-const getYts = () =>
-	search({
-		fetch,
-		orderBy: 'featured'
-	}).then((all) => all.map(({ url, ...rest }) => ({ ...rest, ytsId: url.split('/').pop()! })));
+const getYts = () => search({ fetch, orderBy: 'featured' });
 
 export const load: PageServerLoad = async ({ fetch, platform }) => {
 	const kv = platform?.env?.TROTTERBIN_KV;

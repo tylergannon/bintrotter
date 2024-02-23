@@ -28,7 +28,9 @@
 
 <div class="container flex-1 items-start border md:grid md:grid-cols-2 md:gap-6 lg:gap-10">
 	<div class="container">
-		<h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">{title}</h1>
+		<h1 class="scroll-m-20 pt-1 md:pt-4 text-4xl font-extrabold tracking-tight lg:text-5xl">{title} ({year})</h1>
+        <Separator class="my-1 md:my-4" />
+		<p class="leading-7 [&:not(:first-child)]:mt-6">{description_full}</p>
         <Separator class="my-1 md:my-4" />
 		<ul>
 			{#each torrents as torrent, id}

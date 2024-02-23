@@ -5,12 +5,17 @@ import { dev } from '$app/environment';
 
 type OmdbApiResponse = ({ Response: 'True' } & MovieData) | { Response: 'False'; Error: string };
 
-export async function getMovieData(title: string, fetch: Fetch): Promise<OmdbSearchResult> {
+export async function getMovieData(
+	query: string,
+	fetch: Fetch,
+	attr: 'title' | 'id' = 'title'
+): Promise<OmdbSearchResult> {
 	if (dev) {
-		return THE_DARK_TOWER
+		return THE_DARK_TOWER;
 	}
+
 	const response = await fetch(
-		`http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&t=${encodeURIComponent(title)}`
+		`http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&${attr === "title" ? "t" : "i"}=${encodeURIComponent(query)}`
 	);
 	if (response.status !== 200) {
 		return { ok: false, error: `api response status ${response.status}` };

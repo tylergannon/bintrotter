@@ -39,7 +39,7 @@ export async function search(params: YIFYSearch) {
     const yearStr = params.year ? (Array.isArray(params.year) ? `${params.year[0]}-${params.year[1]}` : `${params.year}`) : '0';
     const pageStr = (params.page && params.page > 1) ? `page=${params.page}` : '';
     const parser = await doRequest(`/browse-movies/${q}/all/all/0/${params.orderBy || 'latest'}/${yearStr}/en?${pageStr}`, params.fetch);
-    return parser.querySelectorAll(findContent).map(getSummary);
+    return parser.querySelectorAll(findContent).map(getSummary).map(({ url, ...rest }) => ({ ...rest, ytsId: url.split('/').pop()! }))
 }
 
 export async function ytsDetail(movieSlug: string, fetch: Fetch) {
