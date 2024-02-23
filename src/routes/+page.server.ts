@@ -9,7 +9,7 @@ const getYts = () => search({ fetch, orderBy: 'featured' });
 
 export const load: PageServerLoad = async ({ fetch, platform }) => {
 	const kv = platform?.env?.TROTTERBIN_KV;
-	const yts = await getItemFromKv('yts-homepage', kv, getYts);
+	const yts = await getItemFromKv('yts-homepage', kv, getYts, 7200);
 
 	const movieData = await Promise.all(
 		yts.map(({ title }) =>
