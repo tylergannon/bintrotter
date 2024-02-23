@@ -4,7 +4,7 @@ import { dev } from '$app/environment';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const auth = event.request.headers.get('Authorization');
-	if (dev || auth !== `Basic ${btoa(ADMIN_LOGIN)}`) {
+	if (dev || auth === `Basic ${btoa(ADMIN_LOGIN)}`) {
 		return resolve(event);
 	}
 
