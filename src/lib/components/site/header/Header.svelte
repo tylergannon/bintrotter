@@ -7,7 +7,9 @@
 
 	$inspect(path);
 	function linkClass(isCurrent: boolean) {
-		return isCurrent ? "text-foreground transition-colors hover:text-foreground/80" : "text-foreground/60 transition-colors hover:text-foreground/80";
+		return isCurrent
+			? 'text-foreground transition-colors hover:text-foreground/80'
+			: 'text-foreground/60 transition-colors hover:text-foreground/80';
 	}
 </script>
 
@@ -19,13 +21,8 @@
 			<LogoLink />
 			<nav class="flex items-center gap-6 text-lg text-emerald-400">
 				Do something cool, finally!
-				<a href="/yts" class={linkClass(path==="/yts")}
-					>YTS</a
-				>
-				<a
-					href="/tpb"
-					class={linkClass(path === "/tpb")}>Pirate Bay</a
-				>
+				<a href="/yts" class={linkClass(path === '/yts')}>YTS</a>
+				<a href="/tpb" class={linkClass(path === '/tpb')}>Pirate Bay</a>
 			</nav>
 		</div>
 		<button

@@ -8,12 +8,11 @@ const ONE_DAY = 3600 * 24;
 const getYts = () => search({ fetch, orderBy: 'featured' });
 
 export const load: PageServerLoad = async ({ fetch, platform }) => {
-	const kv = platform?.env?.TROTTERBIN_KV;
-	const yts = await getItemFromKv('yts-homepage', kv, getYts, 7200);
+	const yts = await getItemFromKv('yts-homepage', platform, getYts, 7200);
 
 	const movieData = await Promise.all(
 		yts.map(({ title }) =>
-			getItemFromKv(`movie-title-${title}`, kv, () => getMovieData(title, fetch), ONE_DAY)
+			getItemFromKv(`movie-title-${title}`, platform, () => getMovieData(title, fetch), ONE_DAY)
 		)
 	);
 

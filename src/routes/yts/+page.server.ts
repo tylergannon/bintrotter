@@ -24,7 +24,7 @@ export const actions = {
 
 		const results = await getItemFromKv(
 			`movie-query:${query}`,
-			platform?.env?.TROTTERBIN_KV,
+			platform,
 			() =>
 				search({
 					fetch,
@@ -36,18 +36,13 @@ export const actions = {
 
 		const movieData = await Promise.all(
 			results.map(({ title }) =>
-				getItemFromKv(
-					`movie-title-${title}`,
-					platform?.env?.TROTTERBIN_KV,
-					() => getMovieData(title, fetch),
-					10000
-				)
+				getItemFromKv(`movie-title-${title}`, platform, () => getMovieData(title, fetch), 10000)
 			)
 		);
 
 		return {
 			results,
-            movieData,
+			movieData,
 			query,
 			order
 		};

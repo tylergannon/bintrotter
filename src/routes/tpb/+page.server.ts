@@ -16,6 +16,15 @@ export type TpbTorrentInfo = {
 	imdb: string;
 };
 
+/**
+ * Unused. This is just translated from https://github.com/vikstrous/pirate-get/blob/master/pirate/torrent.py
+ * but right now we're only using the basic search API call.
+ * @param mode
+ * @param page
+ * @param category
+ * @param terms
+ * @returns
+ */
 function buildRequestPath(
 	mode: 'search' | 'top' | 'recent' | 'browse',
 	page: number,
@@ -43,6 +52,9 @@ function buildRequestPath(
 	return encodeURI(query);
 }
 
+/**
+ * Really not sure if any of these actually work.
+ */
 const mirrors = `https://pirate-proxy.dad
 https://tpb30.ukpass.co
 https://piratehaven.xyz
@@ -59,20 +71,6 @@ https://knaben.xyz/thepiratebay
 https://tpb.re
 https://tpb.skynetcloud.site`.split('\n');
 
-type OrderByFormField =
-	| 'year'
-	| 'latest'
-	| 'oldest'
-	| 'featured'
-	| 'seeds'
-	| 'peers'
-	| 'rating'
-	| 'likes'
-	| 'rt_audience'
-	| 'alphabetical'
-	| 'downloads'
-	| '';
-
 export const actions = {
 	default: async ({ fetch, platform, request }) => {
 		const formData = await request.formData();
@@ -81,7 +79,7 @@ export const actions = {
 
 		const results = await getItemFromKv(
 			`tpb-query:${query}`,
-			platform?.env?.TROTTERBIN_KV,
+			platform,
 			() =>
 				fetch(
 					`https://apibay.org/q.php?q=${encodeURIComponent(query)}&cat=${cat === '' ? '0' : cat}`
@@ -90,19 +88,21 @@ export const actions = {
 					.catch((err) => {
 						console.error(err);
 						return [] as TpbTorrentInfo[];
-					}),
+					})
+					.then((json) => json.slice(0, 30)),
 			300
 		);
 
 		const movieData = await Promise.all(
 			results.map(({ imdb }) =>
-				imdb === "" ? undefined :
-				getItemFromKv(
-					`movie-title-${imdb}`,
-					platform?.env?.TROTTERBIN_KV,
-					() => getMovieData(imdb, fetch, "id"),
-					10000
-				)
+				imdb === ''
+					? undefined
+					: getItemFromKv(
+							`movie-title-${imdb}`,
+							platform,
+							() => getMovieData(imdb, fetch, 'id'),
+							10000
+						)
 			)
 		);
 

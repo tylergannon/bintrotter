@@ -11,7 +11,7 @@
 
 	let { form, data } = $props<{ form: ActionData; data: PageData }>();
 
-	$inspect('Norgle', form, data);
+	$inspect(form, data);
 
 	let query = $state(form?.query);
 

@@ -15,7 +15,7 @@ export async function getMovieData(
 	}
 
 	const response = await fetch(
-		`http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&${attr === "title" ? "t" : "i"}=${encodeURIComponent(query)}`
+		`http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&${attr === 'title' ? 't' : 'i'}=${encodeURIComponent(query)}`
 	);
 	if (response.status !== 200) {
 		return { ok: false, error: `api response status ${response.status}` };

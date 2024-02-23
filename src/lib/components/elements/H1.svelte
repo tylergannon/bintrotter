@@ -15,7 +15,7 @@
 		'scroll-m-20 pt-1 text-4xl font-extrabold tracking-tight md:pt-4 lg:text-5xl',
 		className
 	)}
-    {...attrs}
+	{...attrs}
 >
 	{@render children()}
 </h1>

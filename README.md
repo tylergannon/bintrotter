@@ -1,38 +1,33 @@
-# create-svelte
+# BINTROTTER 
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
+Host your own private torrent search without the insane ads and popups.
 
-## Creating a project
+Currently supports YTS.mx and thepiratebay.
 
-If you're seeing this, you've probably already done this step. Congrats!
+Basic authentication to keep it from being overused or misused.
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
+## Stack
 
-# create a new project in my-app
-npm create svelte@latest my-app
-```
+This is a Sveltekit application, built for use on Cloudflare Pages.
 
-## Developing
+On the backend, it uses the [open movie database](http://www.omdbapi.com) as well
+as api calls out to the Yify and TPB sites for torrent data.
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Also uses Cloudflare KV store for caching data retrieved from those sites, to speed
+things up and also prevent placing a noticeable burden on the services used.
 
-```bash
-npm run dev
+## Installation
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+1. Fork this repo.
+2. Get an api key from [open movie database](http://www.omdbapi.com)
+3. (Optional) Create a KV namespace at cloudflare
+4. Create a new Cloudflare Pages app, configured for Sveltekit, and drawing from this codebase.
+   
+   It should have the following environment variables:
 
-## Building
+   * OMDB_API_KEY=********
+   * ADMIN_LOGIN=username:password
+   * KV_NAMESPACE=CLOUDFLARE_KV_BINDING <-- omit or leave blank to skip using KV.
+5. Deploy & Enjoy!
 
-To create a production version of your app:
 
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
