@@ -1,14 +1,25 @@
 import { search } from '$lib/yts';
 import type { PageServerLoad } from './$types';
 import { getMovieData } from '$lib/integration/omdb';
-export const load: PageServerLoad = async ({ fetch }) => {
-	const yts = await search({
+import { getItemFromKv } from '$lib/kv';
+
+const ONE_DAY = 3600 * 24;
+
+const getYts = () =>
+	search({
 		fetch,
 		orderBy: 'featured'
-	}).then(all => all.map(({url, ...rest})=>({...rest, ytsId: url.split("/").pop()!})))
+	}).then((all) => all.map(({ url, ...rest }) => ({ ...rest, ytsId: url.split('/').pop()! })));
 
-	const movieData = await Promise.all(yts.map(({ title }) => getMovieData(title, fetch)));
+export const load: PageServerLoad = async ({ fetch, platform }) => {
+	const kv = platform?.env?.TROTTERBIN_KV;
+	const yts = await getItemFromKv('yts-homepage', kv, getYts);
 
-	console.log(yts);
+	const movieData = await Promise.all(
+		yts.map(({ title }) =>
+			getItemFromKv(`movie-title-${title}`, kv, () => getMovieData(title, fetch), ONE_DAY)
+		)
+	);
+
 	return { yts, movieData };
 };

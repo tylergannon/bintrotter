@@ -15,12 +15,16 @@
 
 <a href="/yts/{ytsId}">
 	<Card.Root class="grid grid-cols-2">
-		<Card.Header class="">
-			<Card.Title class="col-span-2">{title}</Card.Title>
+		<Card.Header class="col-span-2 border-b-2 mb-4">
+			<Card.Title>{title}</Card.Title>
 		</Card.Header>
-		<Card.Content class="col-span-2">
-			<p>Card Content</p>
+		{#if movieData.ok}
+
+		<Card.Content class="col-span-2 divide-y-2 grid grid-cols-1 gap-4">
+			<p class="font-bold">{movieData.Actors}</p>
+			<p>{movieData.Plot}</p>
 		</Card.Content>
+		{/if}
 		<Card.Footer class="col-span-2">
 			<PosterImage src={imageSrc} alt="{title} Poster" />
 		</Card.Footer>

@@ -1,6 +1,14 @@
 <script lang="ts">
 	import LogoLink from './LogoLink.svelte';
 	import ModeToggle from './ModeToggle.svelte';
+	import { page } from '$app/stores';
+
+	let path = $derived($page.url.pathname);
+
+	$inspect(path);
+	function linkClass(isCurrent: boolean) {
+		return isCurrent ? "text-foreground transition-colors hover:text-foreground/80" : "text-foreground/60 transition-colors hover:text-foreground/80";
+	}
 </script>
 
 <header
@@ -10,20 +18,14 @@
 		<div class="mr-4 hidden md:flex">
 			<LogoLink />
 			<nav class="flex items-center gap-6 text-lg text-emerald-400">
-                Do something cool, finally!
-				<!-- <a href="/docs" class="text-foreground/60 transition-colors hover:text-foreground/80"
-					>Docs</a
+				Do something cool, finally!
+				<a href="/" class={linkClass(path==="/")}
+					>YTS</a
 				>
 				<a
-					href="/docs/components"
-					class="text-foreground transition-colors hover:text-foreground/80">Components</a
+					href="/tpb"
+					class={linkClass(path === "tpb")}>Pirate Bay</a
 				>
-				<a href="/themes" class="text-foreground/60 transition-colors hover:text-foreground/80"
-					>Themes</a
-				>
-				<a href="/examples" class="text-foreground/60 transition-colors hover:text-foreground/80"
-					>Examples</a
-				> -->
 			</nav>
 		</div>
 		<button
