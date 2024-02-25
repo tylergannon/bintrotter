@@ -6,16 +6,10 @@
 
 	const {
 		large_cover_image,
-		medium_cover_image,
-		small_cover_image,
 		description_full,
 		torrents,
-		url,
-		runtime,
 		title,
-		year,
-		slug,
-		id
+		year
 	} = data.ytsData;
 
 	function magnetLink(torrent: (typeof torrents)[number]): string {
