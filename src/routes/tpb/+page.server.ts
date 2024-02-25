@@ -80,19 +80,19 @@ function getOptionalStr(form: FormData, name: string) {
 const tpbCategory: Record<MediaType, string | null> = {
 	any: null,
 	audiobook: '102',
-	episode: '205',
-	movie: '201',
-	season: '205',
-	series: '205'
+	episode: '208',
+	movie: '200',
+	season: '208',
+	series: '208'
 };
 function padNum(s: string) {
 	return s.padStart(2, '0');
 }
 async function tpbFetch(q: string, cat: string): Promise<TpbTorrentInfo[]> {
+	const url = `https://apibay.org/q.php?q=${encodeURIComponent(q)}&cat=${cat === '' ? '0' : cat}`;
+	console.log(url);
 	try {
-		const res = await fetch(
-			`https://apibay.org/q.php?q=${encodeURIComponent(q)}&cat=${cat === '' ? '0' : cat}`
-		);
+		const res = await fetch(url);
 		return (await res.json()) as TpbTorrentInfo[];
 	} catch (error) {
 		console.error(error);
