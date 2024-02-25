@@ -32,8 +32,6 @@
 			{title} ({year})
 		</h1>
 		<Separator class="my-1 md:my-4" />
-		<p class="leading-7 [&:not(:first-child)]:mt-6">{description_full}</p>
-		<Separator class="my-1 md:my-4" />
 		<ul>
 			{#each torrents as torrent, id}
 				<li>
@@ -44,6 +42,8 @@
 				</li>
 			{/each}
 		</ul>
+		<Separator class="my-1 md:my-4" />
+		<p class="leading-7 [&:not(:first-child)]:mt-6">{description_full}</p>
 	</div>
 	<img src={large_cover_image} alt="large cover image" />
 </div>

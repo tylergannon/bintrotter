@@ -11,7 +11,7 @@
 		seeders: string;
 		num_files: string;
 		size: string;
-		movieData: OmdbSearchResult | undefined;
+		movieData?: OmdbSearchResult | undefined;
 	}
 
 	let { info_hash, name, leechers, seeders, size, movieData } = $props<Props>();

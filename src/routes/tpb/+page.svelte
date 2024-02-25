@@ -7,13 +7,36 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
 	import { onMount } from 'svelte';
-	import type { ActionData, PageData } from './$types';
+	import categories from './categories.json';
+	import mediaTypes from './mediaTypes.json';
+	import type { MediaType } from './+page.server';
+	import * as Table from '$lib/components/ui/table';
+	import trackers from '$lib/trackers.json';
+	import { MagnetIcon } from 'lucide-svelte';
 
-	let { form, data } = $props<{ form: ActionData; data: PageData }>();
+	let { form } = $props();
 
-	$inspect(form, data);
+	function magnetLink(hash: string, torrentName: string): string {
+		return `magnet:?xt=urn:btih:${hash}&dn=${torrentName}&${trackers}`;
+	}
 
-	let query = $state(form?.query);
+	const query = form?.query ?? '';
+	const tpbCategory = form?.cat ?? '0';
+	const mediaType: MediaType = (form?.mediaType as MediaType) ?? 'movie';
+
+	let selectedMediaType = $state(
+		mediaTypes.find((it) => it.value === mediaType)! as { label: string; value: MediaType }
+	);
+	const queryLabel: Record<MediaType, string> = {
+		any: 'TPB Query',
+		audiobook: 'Audiobook Title',
+		episode: 'Series Title',
+		movie: 'Movie Title',
+		season: 'Series Title',
+		series: 'Series Title'
+	};
+
+	$inspect(selectedMediaType);
 
 	onMount(() => {
 		const input = document.querySelector("form input[name='query']") as HTMLInputElement;
@@ -32,87 +55,119 @@
 				async ({ result }) =>
 					await applyAction(result)}
 		>
-			<label for="query">Search Query</label>
-			<Input name="query" bind:value={query} />
-			<Select.Root name="category_select">
-				<Select.Input name="category" />
-				<label for="category_select">Category</label>
-				<Select.Trigger class="w-[400px]">
-					<Select.Value placeholder="(optional)"></Select.Value>
-				</Select.Trigger>
-				<Select.Content>
-					<Select.Item value="0">All</Select.Item>
-					<Select.Item value="100">Audio</Select.Item>
-					<Select.Item value="102">Audio/Audio books</Select.Item>
-					<Select.Item value="104">Audio/FLAC</Select.Item>
-					<Select.Item value="101">Audio/Music</Select.Item>
-					<Select.Item value="199">Audio/Other</Select.Item>
-					<Select.Item value="103">Audio/Sound clips</Select.Item>
-					<Select.Item value="400">Games</Select.Item>
-					<Select.Item value="408">Games/Android</Select.Item>
-					<Select.Item value="406">Games/Handheld</Select.Item>
-					<Select.Item value="407">Games/IOS (iPad/iPhone)</Select.Item>
-					<Select.Item value="402">Games/Mac</Select.Item>
-					<Select.Item value="499">Games/Other</Select.Item>
-					<Select.Item value="401">Games/PC</Select.Item>
-					<Select.Item value="403">Games/PSx</Select.Item>
-					<Select.Item value="405">Games/Wii</Select.Item>
-					<Select.Item value="404">Games/XBOX360</Select.Item>
-					<Select.Item value="601">Other/E-books</Select.Item>
-					<Select.Item value="200">Video</Select.Item>
-					<Select.Item value="209">Video/3D</Select.Item>
-					<Select.Item value="207">Video/HD - Movies</Select.Item>
-					<Select.Item value="208">Video/HD - TV shows</Select.Item>
-					<Select.Item value="206">Video/Handheld</Select.Item>
-					<Select.Item value="204">Video/Movie clips</Select.Item>
-					<Select.Item value="201">Video/Movies</Select.Item>
-					<Select.Item value="202">Video/Movies DVDR</Select.Item>
-					<Select.Item value="203">Video/Music videos</Select.Item>
-					<Select.Item value="299">Video/Other</Select.Item>
-					<Select.Item value="205">Video/TV shows</Select.Item>
-					<Select.Item value="500">Porn</Select.Item>
-					<Select.Item value="300">Applications</Select.Item>
-					<Select.Item value="306">Applications/Android</Select.Item>
-					<Select.Item value="304">Applications/Handheld</Select.Item>
-					<Select.Item value="305">Applications/IOS (iPad/iPhone)</Select.Item>
-					<Select.Item value="302">Applications/Mac</Select.Item>
-					<Select.Item value="399">Applications/Other OS</Select.Item>
-					<Select.Item value="303">Applications/UNIX</Select.Item>
-					<Select.Item value="301">Applications/Windows</Select.Item>
-					<Select.Item value="600">Other</Select.Item>
-					<Select.Item value="602">Other/Comics</Select.Item>
-					<Select.Item value="604">Other/Covers</Select.Item>
-					<Select.Item value="699">Other/Other</Select.Item>
-					<Select.Item value="605">Other/Physibles</Select.Item>
-					<Select.Item value="603">Other/Pictures</Select.Item>
-					<Select.Item value="504">Porn/Games</Select.Item>
-					<Select.Item value="505">Porn/HD - Movies</Select.Item>
-					<Select.Item value="506">Porn/Movie clips</Select.Item>
-					<Select.Item value="501">Porn/Movies</Select.Item>
-					<Select.Item value="502">Porn/Movies DVDR</Select.Item>
-					<Select.Item value="599">Porn/Other</Select.Item>
-					<Select.Item value="503">Porn/Pictures</Select.Item>
-				</Select.Content>
-				<Button variant="default" type="submit">Search</Button>
-			</Select.Root>
+			<div class="my-4">
+				<Select.Root name="query_type" bind:selected={selectedMediaType}>
+					<Select.Input name="type" />
+					<label for="query_type">Media Type</label>
+					<Select.Trigger class="w-[400px]">
+						<Select.Value placeholder="(optional)"></Select.Value>
+					</Select.Trigger>
+					<Select.Content>
+						{#each mediaTypes as { value, label }}
+							<Select.Item {value} {label} />
+						{/each}
+					</Select.Content>
+				</Select.Root>
+			</div>
+			<div class="my-4">
+				<label for="query">
+					{queryLabel[selectedMediaType.value]}
+				</label>
+				<Input name="query" value={query} />
+			</div>
+			{#if ['season', 'episode'].includes(selectedMediaType.value)}
+				<div class="my-4">
+					<label for="season">Season</label>
+					<Input name="season" value={''} required />
+				</div>
+				{#if selectedMediaType.value === 'episode'}
+					<div class="my-4">
+						<label for="episode">Episode</label>
+						<Input name="episode" value={''} required />
+					</div>
+				{/if}
+			{/if}
+			{#if selectedMediaType.value !== 'any'}
+				<div class="my-4">
+					<label for="year"> Year (optional) </label>
+					<Input name="year" type="number" value={''} />
+				</div>
+				{#if selectedMediaType.value !== 'audiobook'}
+					<div class="my-4">
+						<Select.Root name="quality_select">
+							<Select.Input name="quality" />
+							<label for="quality_select">Video Quality</label>
+							<Select.Trigger class="w-[400px]">
+								<Select.Value placeholder="(optional)"></Select.Value>
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Item value="720p" />
+								<Select.Item value="1080p" />
+								<Select.Item value="2160p" />
+							</Select.Content>
+						</Select.Root>
+					</div>
+				{/if}
+			{/if}
+
+			{#if selectedMediaType.value === 'any'}
+				<div class="my-4">
+					<Select.Root
+						name="category_select"
+						selected={categories.find((it) => it.value === tpbCategory)}
+					>
+						<Select.Input name="category" />
+						<label for="category_select">TPB Category</label>
+						<Select.Trigger class="w-[400px]">
+							<Select.Value placeholder="(optional)"></Select.Value>
+						</Select.Trigger>
+						<Select.Content>
+							{#each categories as { value, label }}
+								<Select.Item {value} {label} />
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
+			{/if}
+			<Button variant="default" type="submit">Search</Button>
 		</form>
 	</div>
 </div>
 
 {#if form}
 	<div
-		class="container flex-1 items-start md:grid md:grid-cols-2 md:gap-6 lg:grid-cols-3 lg:gap-10"
+		class="container"
 	>
-		{#each form.results as { info_hash, name, leechers, seeders, num_files, size }, id}
-			<TPBCard
-				{info_hash}
-				{name}
-				{leechers}
-				{seeders}
-				{num_files}
-				{size}
-				movieData={form.movieData[id]}
-			/>
-		{/each}
+		{#if form.results.ok}
+			<Table.Root>
+				<Table.Caption>Found the following torrents</Table.Caption>
+				<Table.Header>
+					<Table.Row>
+						<Table.Head class="w-[100px]">Magnet</Table.Head>
+						<Table.Head>Title</Table.Head>
+						<Table.Head>Seeders</Table.Head>
+						<Table.Head>Leechers</Table.Head>
+						<Table.Head>Size (GB)</Table.Head>
+					</Table.Row>
+				</Table.Header>
+				<Table.Body>
+					{#each form.results.torrents as { info_hash, name, leechers, seeders, size }}
+						<Table.Row>
+							<Table.Cell class="font-medium">
+								<a href={magnetLink(info_hash, name)}>
+									<MagnetIcon />
+								</a>
+							</Table.Cell>
+							<Table.Cell>{name}</Table.Cell>
+							<Table.Cell class="text-right">{seeders}</Table.Cell>
+							<Table.Cell class="text-right">{leechers}</Table.Cell>
+							<Table.Cell class="text-right">{parseInt(size)/1000000000}</Table.Cell>
+						</Table.Row>
+					{/each}
+				</Table.Body>
+			</Table.Root>
+		{:else}
+			There was an error.
+		{/if}
 	</div>
 {/if}

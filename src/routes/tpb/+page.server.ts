@@ -1,5 +1,7 @@
-import { getMovieData } from '$lib/integration/omdb.js';
+import type { Result } from '$lib/integration/types.js';
 import { getItemFromKv } from '$lib/kv.js';
+
+export type MediaType = 'any' | 'movie' | 'series' | 'season' | 'episode' | 'audiobook';
 
 export type TpbTorrentInfo = {
 	id: string;
@@ -71,44 +73,107 @@ https://knaben.xyz/thepiratebay
 https://tpb.re
 https://tpb.skynetcloud.site`.split('\n');
 
+function getOptionalStr(form: FormData, name: string) {
+	return (form.get(name) ?? '') as string;
+}
+
+const tpbCategory: Record<MediaType, string | null> = {
+	any: null,
+	audiobook: '102',
+	episode: '205',
+	movie: '201',
+	season: '205',
+	series: '205'
+};
+function padNum(s: string) {
+	return s.padStart(2, '0');
+}
+async function tpbFetch(q: string, cat: string): Promise<TpbTorrentInfo[]> {
+	try {
+		const res = await fetch(
+			`https://apibay.org/q.php?q=${encodeURIComponent(q)}&cat=${cat === '' ? '0' : cat}`
+		);
+		return (await res.json()) as TpbTorrentInfo[];
+	} catch (error) {
+		console.error(error);
+		return [];
+	}
+}
+async function tpbQuery(
+	query: string,
+	year: string,
+	quality: string,
+	episode: string,
+	season: string,
+	category: string
+): Promise<Result<{ torrents: TpbTorrentInfo[] }>> {
+	const seriesStr = episode
+		? [`s${padNum(season)}e${padNum(episode)}`]
+		: season
+			? [`season ${padNum(season)}`, `s${padNum(season)}`]
+			: [''];
+
+	try {
+		const torrents = await Promise.all(
+			seriesStr.map((str) => tpbFetch(`${query} ${year} ${quality} ${str}`, category))
+		).then((res) =>
+			res
+				.flatMap((a) => a)
+				.sort((a, b) => (parseInt(a.seeders) > parseInt(b.seeders) ? -1 : 1))
+				.slice(0, 30)
+		);
+		return { ok: true, torrents };
+	} catch (e) {
+		console.error(e);
+		return { ok: false, error: `${(e as Error).name}: ${(e as Error).message}` };
+	}
+}
+
 export const actions = {
 	default: async ({ fetch, platform, request }) => {
-		const formData = await request.formData();
-		const query = formData.get('query') as string;
-		const cat = formData.get('category') as string;
+		const form = await request.formData();
+		const query = getOptionalStr(form, 'query');
+		const year = getOptionalStr(form, 'year');
+		const mediaType = (getOptionalStr(form, 'type') ?? 'any') as MediaType;
+
+		const cat = tpbCategory[mediaType] ?? getOptionalStr(form, 'category');
+		const season = getOptionalStr(form, 'season');
+		const episode = getOptionalStr(form, 'episode');
+		const quality = getOptionalStr(form, 'quality');
+
+		const queryParts = [query];
+		if (episode) queryParts.push(`s${padNum(season)}e${padNum(episode)}`);
+		else if (season) queryParts.push(`s${padNum(season)}`);
+
+		if (quality) queryParts.push(quality);
 
 		const results = await getItemFromKv(
-			`tpb-query:${query}`,
+			`tpb-query:${query}:${year}:${mediaType}:${cat}:${season}:${episode}:${quality}`,
 			platform,
-			() =>
-				fetch(
-					`https://apibay.org/q.php?q=${encodeURIComponent(query)}&cat=${cat === '' ? '0' : cat}`
-				)
-					.then((res) => res.json() as unknown as Array<TpbTorrentInfo>)
-					.catch((err) => {
-						console.error(err);
-						return [] as TpbTorrentInfo[];
-					})
-					.then((json) => json.slice(0, 30)),
+			() => tpbQuery(query, year, quality, episode, season, cat),
 			300
 		);
 
-		const movieData = await Promise.all(
-			results.map(({ imdb }) =>
-				imdb === ''
-					? undefined
-					: getItemFromKv(
-							`movie-title-${imdb}`,
-							platform,
-							() => getMovieData(imdb, fetch, 'id'),
-							10000
-						)
-			)
-		);
+		// const movieData = await Promise.all(
+		// 	results.map(({  }) =>
+		// 		imdb === ''
+		// 			? undefined
+		// 			: getItemFromKv(
+		// 					`movie-title-${imdb}`,
+		// 					platform,
+		// 					() => fetchOmdb(),
+		// 					10000
+		// 				)
+		// 	)
+		// );
 
 		return {
 			results,
-			movieData,
+			// movieData,
+			mediaType,
+			year,
+			season,
+			episode,
 			query,
 			cat
 		};

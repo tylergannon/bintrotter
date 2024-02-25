@@ -1,5 +1,6 @@
 import { dev } from '$app/environment';
 import * as env from '$env/static/private';
+import type { Result } from './integration/types';
 
 const KV_NAMESPACE = 'KV_NAMESPACE';
 
@@ -10,7 +11,11 @@ interface KVNamespace {
 		(key: string, opts: { type: 'text'; cacheTtl?: number }): Promise<string | null>;
 		<T extends {} = {}>(key: string, opts: { type: 'json'; cacheTtl?: number }): Promise<T | null>;
 	};
-	put: (key: string, value: any) => Promise<never>;
+	put: (
+		key: string,
+		value: string,
+		expiry: { expiration: number } | { expirationTtl: number }
+	) => Promise<void>;
 }
 
 function getKv(platform: App.Platform | undefined | null) {
@@ -38,21 +43,24 @@ function getKv(platform: App.Platform | undefined | null) {
  * @param cacheTtl Cache expiry in seconds
  * @returns
  */
-export async function getItemFromKv<T extends {}>(
+export async function getItemFromKv<T extends {}, U extends Result<T> = Result<T>>(
 	key: string,
 	platform: App.Platform | undefined | null,
-	fn: () => Promise<T>,
-	cacheTtl: number = 60
-): Promise<T> {
+	fn: () => Promise<U>,
+	successTtl: number = 60,
+	errorTtl: number = 60
+): Promise<U> {
 	const kv = getKv(platform);
 
 	if (!kv) {
 		return fn();
 	}
-	const valFromKv = await kv.get<T>(key, { type: 'json', cacheTtl });
+
+	const valFromKv = await kv.get<U>(key, { type: 'json' });
 	if (valFromKv !== null) return valFromKv;
 
 	const val = await fn();
-	await kv.put(key, JSON.stringify(val));
+
+	await kv.put(key, JSON.stringify(val), { expirationTtl: val.ok ? successTtl : errorTtl });
 	return val;
 }

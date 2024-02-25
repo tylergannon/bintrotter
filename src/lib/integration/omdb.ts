@@ -1,35 +1,55 @@
 import { OMDB_API_KEY } from '$env/static/private';
-import type { MovieData, OmdbSearchResult } from './types';
+import type { FetchFunction } from 'vite';
+import type {
+	EpisodeDetail,
+	MovieData,
+	OmdbError,
+	OmdbSearchResult,
+	Result,
+	SeasonDetail,
+	SeriesDetail
+} from './types';
+
+function component(name: string, value: string) {
+	return `${name}=${encodeURIComponent(value)}`;
+}
+type MediaQuery = 'movie' | 'series' | 'season' | 'episode';
+type MediaQueryResult<T extends MediaQuery> = T extends 'movie'
+	? MovieData
+	: T extends 'series'
+		? SeriesDetail
+		: T extends 'season'
+			? SeasonDetail
+			: EpisodeDetail;
+
 type Fetch = typeof fetch;
-import { dev } from '$app/environment';
 
-type OmdbApiResponse = ({ Response: 'True' } & MovieData) | { Response: 'False'; Error: string };
-
-export async function getMovieData(
-	query: string,
+export async function fetchOmdb<T extends MediaQuery>(
 	fetch: Fetch,
-	attr: 'title' | 'id' = 'title'
-): Promise<OmdbSearchResult> {
-	if (dev) {
-		return THE_DARK_TOWER;
+	query: string,
+	type: T,
+	year: string = '',
+	season: string = '',
+	episode: string = ''
+): Promise<Result<MediaQueryResult<T>>> {
+	const parts = [component('t', query)];
+	if (year) parts.push(component('y', year));
+	if (type === 'episode') {
+		parts.push(component('Episode', episode));
+		parts.push(component('Season', season));
+	} else if (type === 'season') {
+		parts.push(component('Season', season));
 	}
 
-	const response = await fetch(
-		`http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&${attr === 'title' ? 't' : 'i'}=${encodeURIComponent(query)}`
-	);
-	if (response.status !== 200) {
-		return { ok: false, error: `api response status ${response.status}` };
-	}
+	const url = `http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&type=${type}&${parts.join('&')}`
+	console.log("OMDB Fetch", url)
 
-	const result = (await response.json()) as OmdbApiResponse;
-	if (result.Response === 'False') {
-		return { ok: false, error: result.Error };
+	const response = await fetch( url);
+	const omdbResponse = (await response.json()) as MediaQueryResult<T> | OmdbError;
+	if (omdbResponse.Response === 'True') {
+		return { ok: true, ...omdbResponse };
 	}
-	const { Response, ...data } = result;
-	return {
-		ok: true,
-		...data
-	};
+	return { ok: false, error: omdbResponse.Error };
 }
 
 const THE_DARK_TOWER = {

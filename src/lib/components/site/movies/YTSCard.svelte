@@ -1,16 +1,19 @@
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card';
-	import type { OmdbSearchResult } from '$lib/integration/types';
+	import type { MovieData, OmdbSearchResult, Result } from '$lib/integration/types';
 	import PosterImage from './PosterImage.svelte';
 
 	interface Props {
 		title: string;
 		ytsId: string;
-		movieData: OmdbSearchResult;
+		movieData: Result<MovieData>;
 	}
 
 	let { title, ytsId, movieData } = $props<Props>();
+
 	let imageSrc = $derived(movieData.ok ? movieData.Poster : undefined);
+
+	$inspect(movieData);
 </script>
 
 <a href="/yts/{ytsId}">

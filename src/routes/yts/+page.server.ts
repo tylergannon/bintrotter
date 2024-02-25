@@ -1,4 +1,4 @@
-import { getMovieData } from '$lib/integration/omdb.js';
+import { fetchOmdb } from '$lib/integration/omdb.js';
 import { getItemFromKv } from '$lib/kv.js';
 import { search } from '$lib/yts.js';
 
@@ -22,7 +22,7 @@ export const actions = {
 		const query = formData.get('query') as string;
 		const order = formData.get('order') as OrderByFormField;
 
-		const results = await getItemFromKv(
+		const searchResponse = await getItemFromKv(
 			`movie-query:${query}`,
 			platform,
 			() =>
@@ -31,12 +31,20 @@ export const actions = {
 					orderBy: order === '' ? 'latest' : order,
 					query: query === '' ? undefined : query
 				}),
+			3600,
 			3600
 		);
 
+		const results = searchResponse.ok ? searchResponse.torrents : [];
+
 		const movieData = await Promise.all(
-			results.map(({ title }) =>
-				getItemFromKv(`movie-title-${title}`, platform, () => getMovieData(title, fetch), 10000)
+			results.map(({ title, year }) =>
+				getItemFromKv(
+					`movie-title-${title}`,
+					platform,
+					() => fetchOmdb(fetch, title, 'movie', year),
+					10000
+				)
 			)
 		);
 

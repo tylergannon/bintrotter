@@ -1,4 +1,5 @@
 import { type HTMLElement, parse } from 'node-html-parser';
+import type { Result } from './integration/types';
 
 interface YIFYTorrent {
 	title: string;
@@ -45,7 +46,9 @@ interface YIFYSearch {
 		| 'downloads';
 }
 
-export async function search(params: YIFYSearch) {
+export async function search(
+	params: YIFYSearch
+): Promise<Result<{ torrents: { title: string; ytsId: string; year: string }[] }>> {
 	const q = encodeURI(params.query || '0');
 	const yearStr = params.year
 		? Array.isArray(params.year)
@@ -53,23 +56,36 @@ export async function search(params: YIFYSearch) {
 			: `${params.year}`
 		: '0';
 	const pageStr = params.page && params.page > 1 ? `page=${params.page}` : '';
-	const parser = await doRequest(
-		`/browse-movies/${q}/all/all/0/${params.orderBy || 'latest'}/${yearStr}/en?${pageStr}`,
-		params.fetch
-	);
-	return parser
-		.querySelectorAll(findContent)
-		.map(getSummary)
-		.map(({ url, ...rest }) => ({ ...rest, ytsId: url.split('/').pop()! }));
+	try {
+		const parser = await doRequest(
+			`/browse-movies/${q}/all/all/0/${params.orderBy || 'latest'}/${yearStr}/en?${pageStr}`,
+			params.fetch
+		);
+		const torrents = parser
+			.querySelectorAll(findContent)
+			.map(getSummary)
+			.map(({ url, ...rest }) => ({ ...rest, ytsId: url.split('/').pop()! }));
+		return { ok: true, torrents };
+	} catch (e) {
+		console.error(e);
+		console.error('Yify search, params:', params);
+		return { ok: false, error: `Error doing yts search, params ${JSON.stringify(params)}` };
+	}
 }
 
-export async function ytsDetail(movieSlug: string, fetch: Fetch) {
+export async function ytsDetail(
+	movieSlug: string,
+	fetch: Fetch
+): Promise<Result<YIFYApiResponse['data']['movie']>> {
 	const parser = await doRequest(`/movies/${movieSlug}`, fetch);
 	const el = parser.querySelector('#movie-info');
 	const movieId = el?.getAttribute('data-movie-id') as string;
 	const res = await fetch(`https://yts.mx/api/v2/movie_details.json?movie_id=${movieId}`);
 	const movieData = (await res.json()) as YIFYApiResponse;
-	return movieData.data.movie;
+	if (movieData.status === 'ok') {
+		return { ok: true, ...movieData.data.movie };
+	}
+	return { ok: false, error: `error fetching yts movie ${movieId}` };
 }
 
 async function doRequest(path: string, fetch: Fetch) {

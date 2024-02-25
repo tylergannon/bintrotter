@@ -1,0 +1,8 @@
+[
+	{ "label": "Movie", "value": "movie" },
+	{ "label": "Episode", "value": "episode" },
+	{ "label": "Season", "value": "season" },
+	{ "label": "Series", "value": "series" },
+	{ "label": "Audiobook", "value": "audiobook" },
+	{ "label": "Other", "value": "any" }
+]
