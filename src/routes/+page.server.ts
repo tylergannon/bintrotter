@@ -39,9 +39,5 @@ export const load: PageServerLoad = async ({
 		)
 	);
 
-	for (const torrent of torrents) {
-		console.log(torrent.movieData);
-	}
-
 	return { ok: true, torrents };
 };

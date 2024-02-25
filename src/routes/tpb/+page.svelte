@@ -3,7 +3,6 @@
 	import { H1 } from '$lib/components/elements';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import { Input } from '$lib/components/ui/input';
-	import TPBCard from '$lib/components/site/movies/TPBCard.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
 	import { onMount } from 'svelte';
@@ -94,16 +93,17 @@
 				</div>
 				{#if selectedMediaType.value !== 'audiobook'}
 					<div class="my-4">
-						<Select.Root name="quality_select">
+						<Select.Root name="quality_select" selected={{value: "", label: "Any"}}>
 							<Select.Input name="quality" />
 							<label for="quality_select">Video Quality</label>
 							<Select.Trigger class="w-[400px]">
 								<Select.Value placeholder="(optional)"></Select.Value>
 							</Select.Trigger>
 							<Select.Content>
-								<Select.Item value="720p" />
-								<Select.Item value="1080p" />
-								<Select.Item value="2160p" />
+								<Select.Item value="">Any</Select.Item>
+								<Select.Item value="720p">720p</Select.Item>
+								<Select.Item value="1080p">1080p</Select.Item>
+								<Select.Item value="2160p">2160p</Select.Item>
 							</Select.Content>
 						</Select.Root>
 					</div>
@@ -151,9 +151,9 @@
 					</Table.Row>
 				</Table.Header>
 				<Table.Body>
-					{#each form.results.torrents as { info_hash, name, leechers, seeders, size }}
+					{#each form.results.data as { info_hash, name, leechers, seeders, size }}
 						<Table.Row>
-							<Table.Cell class="font-medium">
+							<Table.Cell>
 								<a href={magnetLink(info_hash, name)}>
 									<MagnetIcon />
 								</a>
@@ -161,7 +161,7 @@
 							<Table.Cell>{name}</Table.Cell>
 							<Table.Cell class="text-right">{seeders}</Table.Cell>
 							<Table.Cell class="text-right">{leechers}</Table.Cell>
-							<Table.Cell class="text-right">{parseInt(size)/1000000000}</Table.Cell>
+							<Table.Cell class="text-right">{Math.round(parseInt(size)/10000000)/100} GB</Table.Cell>
 						</Table.Row>
 					{/each}
 				</Table.Body>

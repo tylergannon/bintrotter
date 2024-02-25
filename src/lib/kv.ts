@@ -9,7 +9,7 @@ interface KVNamespace {
 		(key: string): Promise<string | null>;
 		(key: string, opts: { cacheTtl?: number }): Promise<string | null>;
 		(key: string, opts: { type: 'text'; cacheTtl?: number }): Promise<string | null>;
-		<T extends {} = {}>(key: string, opts: { type: 'json'; cacheTtl?: number }): Promise<T | null>;
+		<T>(key: string, opts: { type: 'json'; cacheTtl?: number }): Promise<T | null>;
 	};
 	put: (
 		key: string,
@@ -43,23 +43,24 @@ function getKv(platform: App.Platform | undefined | null) {
  * @param cacheTtl Cache expiry in seconds
  * @returns
  */
-export async function getItemFromKv<T extends {}, U extends Result<T> = Result<T>>(
+export async function getItemFromKv<U, V extends Error|string>(
 	key: string,
 	platform: App.Platform | undefined | null,
-	fn: () => Promise<U>,
+	fn: () => Promise<Result<U, V>>,
 	successTtl: number = 60,
 	errorTtl: number = 60
-): Promise<U> {
+): Promise<Result<U, V>> {
 	const kv = getKv(platform);
+	console.log("KV GET", key);
 
 	if (!kv) {
 		return fn();
 	}
 
-	const valFromKv = await kv.get<U>(key, { type: 'json' });
-	if (valFromKv !== null) return valFromKv;
+	const valFromKv = await kv.get<Result<U, V>>(key, { type: 'json' });
+	if (valFromKv !== null) return valFromKv as Result<U, V>;
 
-	const val = await fn();
+	const val = await fn() as Result<U, V>;
 
 	await kv.put(key, JSON.stringify(val), { expirationTtl: val.ok ? successTtl : errorTtl });
 	return val;

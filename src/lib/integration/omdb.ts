@@ -7,7 +7,8 @@ import type {
 	OmdbSearchResult,
 	Result,
 	SeasonDetail,
-	SeriesDetail
+	SeriesDetail,
+	SuccessResult
 } from './types';
 
 function component(name: string, value: string) {
@@ -47,7 +48,7 @@ export async function fetchOmdb<T extends MediaQuery>(
 	const response = await fetch( url);
 	const omdbResponse = (await response.json()) as MediaQueryResult<T> | OmdbError;
 	if (omdbResponse.Response === 'True') {
-		return { ok: true, ...omdbResponse };
+		return { ok: true, ...omdbResponse } as SuccessResult<MediaQueryResult<T>>;
 	}
 	return { ok: false, error: omdbResponse.Error };
 }

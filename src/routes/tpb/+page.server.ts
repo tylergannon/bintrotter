@@ -89,15 +89,20 @@ const tpbCategory: Record<MediaType, string | null> = {
 function padNum(s: string) {
 	return s.padStart(2, '0');
 }
-async function tpbFetch(q: string, cat: string, fetch: Fetch): Promise<TpbTorrentInfo[]> {
+
+async function tpbFetch(
+	q: string,
+	cat: string,
+	fetch: Fetch
+): Promise<Result<TpbTorrentInfo[], Error>> {
 	const url = `https://apibay.org/q.php?q=${encodeURIComponent(q)}&cat=${cat === '' ? '0' : cat}`;
-	console.log(url);
+	console.log('pirate query', url);
 	try {
 		const res = await fetch(url);
-		return (await res.json()) as TpbTorrentInfo[];
+		return { ok: true, data: (await res.json()) as TpbTorrentInfo[] };
 	} catch (error) {
 		console.error(error);
-		return [];
+		return { ok: false, error: error as Error };
 	}
 }
 
@@ -111,27 +116,29 @@ async function tpbQuery(
 	episode: string,
 	season: string,
 	category: string
-): Promise<Result<{ torrents: TpbTorrentInfo[] }>> {
+): Promise<Result<TpbTorrentInfo[], Error>> {
 	const seriesStr = episode
 		? [`s${padNum(season)}e${padNum(episode)}`]
 		: season
 			? [`season ${padNum(season)}`, `s${padNum(season)}`]
 			: [''];
-
-	try {
-		const torrents = await Promise.all(
-			seriesStr.map((str) => tpbFetch(`${query} ${year} ${quality} ${str}`, category, fetch))
-		).then((res) =>
-			res
-				.flatMap((a) => a)
-				.sort((a, b) => (parseInt(a.seeders) > parseInt(b.seeders) ? -1 : 1))
-				.slice(0, 30)
-		);
-		return { ok: true, torrents };
-	} catch (e) {
-		console.error(e);
-		return { ok: false, error: `${(e as Error).name}: ${(e as Error).message}` };
+	const fetchResults = await Promise.all(
+		seriesStr.map((str) => tpbFetch(`${query} ${year} ${quality} ${str}`, category, fetch))
+	);
+	const returnVal: TpbTorrentInfo[][] = [];
+	for (const result of fetchResults) {
+		if (result.ok === false) {
+			return result;
+		}
+		returnVal.push(result.data);
 	}
+	return {
+		ok: true,
+		data: returnVal
+			.flatMap((a) => a)
+			.sort((a, b) => (parseInt(a.seeders) > parseInt(b.seeders) ? -1 : 1))
+			.slice(0, 30)
+	};
 }
 
 export const actions = {
@@ -146,12 +153,6 @@ export const actions = {
 		const episode = getOptionalStr(form, 'episode');
 		const quality = getOptionalStr(form, 'quality');
 
-		const queryParts = [query];
-		if (episode) queryParts.push(`s${padNum(season)}e${padNum(episode)}`);
-		else if (season) queryParts.push(`s${padNum(season)}`);
-
-		if (quality) queryParts.push(quality);
-
 		const results = await getItemFromKv(
 			`tpb-query:${query}:${year}:${mediaType}:${cat}:${season}:${episode}:${quality}`,
 			platform,
@@ -160,25 +161,11 @@ export const actions = {
 		);
 
 		if (results.ok === false) {
-			error(500, results.error)
+			error(500, results.error);
 		}
-
-		// const movieData = await Promise.all(
-		// 	results.map(({  }) =>
-		// 		imdb === ''
-		// 			? undefined
-		// 			: getItemFromKv(
-		// 					`movie-title-${imdb}`,
-		// 					platform,
-		// 					() => fetchOmdb(),
-		// 					10000
-		// 				)
-		// 	)
-		// );
 
 		return {
 			results,
-			// movieData,
 			mediaType,
 			year,
 			season,

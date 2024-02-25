@@ -1,8 +1,14 @@
-export type Result<T extends {}, ErrorType = string> =
-	| ({
-			ok: true;
-	  } & T)
-	| { ok: false; error: ErrorType };
+export type SuccessResult<T> = {
+	ok: true;
+} & (T extends Array<infer U> ? { data: U[] } : T extends object ? T : { data: T });
+
+export type ErrorResult<T extends string|Error = string> = {
+	ok: false;
+	error: T;
+}
+
+export type Result<T, ErrorType extends string|Error = string> =
+	SuccessResult<T> | ErrorResult<ErrorType>
 
 export interface MovieData {
 	Title: string;
