@@ -1,5 +1,6 @@
 import type { Result } from '$lib/integration/types.js';
 import { getItemFromKv } from '$lib/kv.js';
+import { error } from '@sveltejs/kit';
 
 export type MediaType = 'any' | 'movie' | 'series' | 'season' | 'episode' | 'audiobook';
 
@@ -88,7 +89,7 @@ const tpbCategory: Record<MediaType, string | null> = {
 function padNum(s: string) {
 	return s.padStart(2, '0');
 }
-async function tpbFetch(q: string, cat: string): Promise<TpbTorrentInfo[]> {
+async function tpbFetch(q: string, cat: string, fetch: Fetch): Promise<TpbTorrentInfo[]> {
 	const url = `https://apibay.org/q.php?q=${encodeURIComponent(q)}&cat=${cat === '' ? '0' : cat}`;
 	console.log(url);
 	try {
@@ -99,7 +100,11 @@ async function tpbFetch(q: string, cat: string): Promise<TpbTorrentInfo[]> {
 		return [];
 	}
 }
+
+type Fetch = typeof fetch;
+
 async function tpbQuery(
+	fetch: Fetch,
 	query: string,
 	year: string,
 	quality: string,
@@ -115,7 +120,7 @@ async function tpbQuery(
 
 	try {
 		const torrents = await Promise.all(
-			seriesStr.map((str) => tpbFetch(`${query} ${year} ${quality} ${str}`, category))
+			seriesStr.map((str) => tpbFetch(`${query} ${year} ${quality} ${str}`, category, fetch))
 		).then((res) =>
 			res
 				.flatMap((a) => a)
@@ -150,9 +155,13 @@ export const actions = {
 		const results = await getItemFromKv(
 			`tpb-query:${query}:${year}:${mediaType}:${cat}:${season}:${episode}:${quality}`,
 			platform,
-			() => tpbQuery(query, year, quality, episode, season, cat),
+			() => tpbQuery(fetch, query, year, quality, episode, season, cat),
 			300
 		);
+
+		if (results.ok === false) {
+			error(500, results.error)
+		}
 
 		// const movieData = await Promise.all(
 		// 	results.map(({  }) =>
