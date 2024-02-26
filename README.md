@@ -34,4 +34,5 @@ things up and also prevent placing a noticeable burden on the services used.
 ![Torrent Detail](https://raw.githubusercontent.com/tylergannon/bintrotter/main/screenshots/detail.png)
 ![Home Page](https://raw.githubusercontent.com/tylergannon/bintrotter/main/screenshots/homepage.png)
 ![YTS Form](https://raw.githubusercontent.com/tylergannon/bintrotter/main/screenshots/yts_page.png)
-![TPB Form](https://raw.githubusercontent.com/tylergannon/bintrotter/main/screenshots/tpb_page.png)
+![TPB Search](https://raw.githubusercontent.com/tylergannon/bintrotter/main/screenshots/tpb_search.png)
+
