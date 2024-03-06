@@ -1,8 +1,9 @@
-import { search } from '$lib/yts';
+import { search, type YifySummary } from '$lib/yts';
 import type { PageServerLoad } from './$types';
 import { fetchOmdb } from '$lib/integration/omdb';
 import { getItemFromKv } from '$lib/kv';
 import type { MovieData, Result } from '$lib/integration/types';
+import { error } from '@sveltejs/kit';
 
 const ONE_DAY = 3600 * 24;
 
@@ -11,23 +12,14 @@ const getYts = () => search({ fetch, orderBy: 'featured' });
 export const load: PageServerLoad = async ({
 	fetch,
 	platform
-}): Promise<
-	Result<{
-		torrents: {
-			title: string;
-			ytsId: string;
-			year: string;
-			movieData: Result<MovieData>;
-		}[];
-	}>
-> => {
+}): Promise<{yts: YifySummary[], moreData: Promise<Result<MovieData>[]>}> => {
 	const yts = await getItemFromKv('yts-homepage', platform, getYts, 7200, 60);
 
 	if (yts.ok === false) {
-		return { ok: false, error: yts.error };
+		error(500, yts.error)
 	}
 
-	const torrents = await Promise.all(
+	const moreData = Promise.all(
 		yts.torrents.map((torrent) =>
 			getItemFromKv(
 				`movie-title-${torrent.title}`,
@@ -35,9 +27,9 @@ export const load: PageServerLoad = async ({
 				() => fetchOmdb(fetch, torrent.title, 'movie', torrent.year),
 				ONE_DAY,
 				3600
-			).then((movieData) => ({ movieData, ...torrent }))
+			)
 		)
 	);
 
-	return { ok: true, torrents };
+	return { yts: yts.torrents, moreData };
 };

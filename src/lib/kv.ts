@@ -51,7 +51,6 @@ export async function getItemFromKv<U, V extends Error|string>(
 	errorTtl: number = 60
 ): Promise<Result<U, V>> {
 	const kv = getKv(platform);
-	console.log("KV GET", key);
 
 	if (!kv) {
 		return fn();

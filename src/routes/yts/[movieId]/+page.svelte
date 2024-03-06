@@ -4,15 +4,11 @@
 	import trackers from '$lib/trackers.json';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 
-	const {
-		large_cover_image,
-		description_full,
-		torrents,
-		title,
-		year
-	} = data.ytsData;
+	const { modalQuality, movieData, imageMd, title, year } = data.ytsData;
 
-	function magnetLink(torrent: (typeof torrents)[number]): string {
+	movieData.then(it => console.log(it))
+
+	function magnetLink(torrent: Awaited<typeof movieData>['torrents'][number]): string {
 		const torrentName = encodeURIComponent(
 			`${title} [${torrent.size}] [${torrent.quality}] [${torrent.video_codec}]`
 		);
@@ -27,17 +23,34 @@
 		</h1>
 		<Separator class="my-1 md:my-4" />
 		<ul>
-			{#each torrents as torrent, id}
-				<li>
-					<a href={magnetLink(torrent)} class="flex flex-row hover:font-extrabold">
+			{#await movieData}
+				{#each modalQuality as quality, id}
+					<li>
 						<MagnetIcon size={36} />
-						{torrent.quality} ({torrent.size} / {torrent.video_codec})
-					</a>
-				</li>
-			{/each}
+						{quality}
+					</li>
+				{/each}
+			{:then _movieData}
+				{#each _movieData.torrents as torrent, id}
+					<li>
+						<a href={magnetLink(torrent)} class="flex flex-row hover:font-extrabold">
+							<MagnetIcon size={36} />
+							{torrent.quality} ({torrent.size} / {torrent.video_codec})
+						</a>
+					</li>
+				{/each}
+			{/await}
 		</ul>
 		<Separator class="my-1 md:my-4" />
-		<p class="leading-7 [&:not(:first-child)]:mt-6">{description_full}</p>
+		<p class="leading-7 [&:not(:first-child)]:mt-6">
+			{#await movieData then { description_full }}
+				{description_full}
+			{/await}
+		</p>
 	</div>
-	<img src={large_cover_image} alt="large cover image" />
+	{#await movieData}
+		<img src={imageMd} width="500" height="750" alt="medium cover" />
+	{:then { large_cover_image }}
+		<img src={large_cover_image} width="500" height="750" alt="large cover" />
+	{/await}
 </div>

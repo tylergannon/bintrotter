@@ -96,7 +96,6 @@ async function tpbFetch(
 	fetch: Fetch
 ): Promise<Result<TpbTorrentInfo[], Error>> {
 	const url = `https://apibay.org/q.php?q=${encodeURIComponent(q)}&cat=${cat === '' ? '0' : cat}`;
-	console.log('pirate query', url);
 	try {
 		const res = await fetch(url);
 		return { ok: true, data: (await res.json()) as TpbTorrentInfo[] };

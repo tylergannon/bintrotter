@@ -42,10 +42,9 @@ export async function fetchOmdb<T extends MediaQuery>(
 		parts.push(component('Season', season));
 	}
 
-	const url = `http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&type=${type}&${parts.join('&')}`
-	console.log("OMDB Fetch", url)
+	const url = `http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&type=${type}&${parts.join('&')}`;
 
-	const response = await fetch( url);
+	const response = await fetch(url);
 	const omdbResponse = (await response.json()) as MediaQueryResult<T> | OmdbError;
 	if (omdbResponse.Response === 'True') {
 		return { ok: true, ...omdbResponse } as SuccessResult<MediaQueryResult<T>>;

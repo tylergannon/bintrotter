@@ -15,15 +15,46 @@ type Fetch = typeof fetch;
 
 const baseUrl: string = 'https://yts.mx';
 const findPopular: string = '#popular-downloads .browse-movie-wrap .browse-movie-bottom';
-const findContent: string = '.browse-content .browse-movie-wrap .browse-movie-bottom';
+const findContent: string = '.browse-content .browse-movie-wrap';
 
-function getSummary(el: HTMLElement): Pick<YIFYTorrent, 'title' | 'url' | 'year'> {
-	const aTag = el.querySelector('a');
-	const divTag = el.querySelector('div');
+// <div class="browse-movie-wrap col-xs-10 col-sm-5">
+// 	<a href="https://yts.mx/movies/out-of-darkness-2022" class="browse-movie-link">
+// 		<figure>
+// 			<img class="img-responsive"
+// 				src="/assets/images/movies/out_of_darkness_2022/medium-cover.jpg"
+// 				alt="Out of Darkness (2022) download" width="210" height="315" />
+// 			<figcaption class="hidden-xs hidden-sm">
+// 				<span class="icon-star"></span>
+// 				<h4 class="rating">6.2 / 10</h4>
+// 				<h4>Horror</h4>
+// 				<h4>Thriller</h4>
+// 				<span class="button-green-download2-big">View Details</span>
+// 			</figcaption>
+// 		</figure>
+// 	</a>
+// 	<div class="browse-movie-bottom">
+// 		<a href="https://yts.mx/movies/out-of-darkness-2022" class="browse-movie-title">Out of
+// 			Darkness</a>
+// 		<div class="browse-movie-year">2022</div>
+// 	</div>
+// </div>
+
+export type YifySummary = {
+	title: string;
+	ytsId: string;
+	year: string;
+	imageMd: string;
+};
+
+function getSummary(el: HTMLElement): YifySummary {
+	const aTag = el.querySelector('a.browse-movie-title')!;
+	const divTag = el.querySelector('div.browse-movie-year')!;
+	const imageMd = el.querySelector('img.img-responsive')!.attributes['src'];
 	return {
-		title: aTag?.text || '',
-		url: aTag?.attributes['href'] || '',
-		year: divTag?.text || ''
+		title: aTag.text,
+		ytsId: aTag.attributes['href'].split('/').pop()!,
+		year: divTag.text,
+		imageMd
 	};
 }
 
@@ -46,9 +77,7 @@ interface YIFYSearch {
 		| 'downloads';
 }
 
-export async function search(
-	params: YIFYSearch
-): Promise<Result<{ torrents: { title: string; ytsId: string; year: string }[] }>> {
+export async function search(params: YIFYSearch): Promise<Result<{ torrents: YifySummary[] }>> {
 	const q = encodeURI(params.query || '0');
 	const yearStr = params.year
 		? Array.isArray(params.year)
@@ -56,46 +85,70 @@ export async function search(
 			: `${params.year}`
 		: '0';
 	const pageStr = params.page && params.page > 1 ? `page=${params.page}` : '';
-	try {
-		const parser = await doRequest(
-			`/browse-movies/${q}/all/all/0/${params.orderBy || 'latest'}/${yearStr}/en?${pageStr}`,
-			params.fetch
-		);
-		const torrents = parser
-			.querySelectorAll(findContent)
-			.map(getSummary)
-			.map(({ url, ...rest }) => ({ ...rest, ytsId: url.split('/').pop()! }));
-		return { ok: true, torrents };
-	} catch (e) {
-		console.error(e);
+
+	const parser = await doRequest(
+		`/browse-movies/${q}/all/all/0/${params.orderBy || 'latest'}/${yearStr}/en?${pageStr}`,
+		params.fetch
+	);
+
+	if (!parser.ok) {
+		console.error(parser.error);
 		console.error('Yify search, params:', params);
-		return { ok: false, error: `Error doing yts search, params ${JSON.stringify(params)}` };
+		return parser;
 	}
+	const torrents = parser.el.querySelectorAll(findContent).map(getSummary);
+	return { ok: true, torrents };
+}
+
+type YtsDetail = {
+	movieId: string;
+	title: string;
+	year: string;
+	imageMd: string;
+	modalQuality: string[];
+	movieData: Promise<YIFYApiResponse['data']['movie']>;
 }
 
 export async function ytsDetail(
 	movieSlug: string,
 	fetch: Fetch
-): Promise<Result<YIFYApiResponse['data']['movie']>> {
-	const parser = await doRequest(`/movies/${movieSlug}`, fetch);
-	const el = parser.querySelector('#movie-info');
-	const movieId = el?.getAttribute('data-movie-id') as string;
-	const res = await fetch(`https://yts.mx/api/v2/movie_details.json?movie_id=${movieId}`);
-	const movieData = (await res.json()) as YIFYApiResponse;
-	if (movieData.status === 'ok') {
-		return { ok: true, ...movieData.data.movie };
+): Promise<Result<YtsDetail>> {
+	const getHtmlDoc = await doRequest(`/movies/${movieSlug}`, fetch);
+	if (!getHtmlDoc.ok) {
+		return getHtmlDoc
 	}
-	return { ok: false, error: `error fetching yts movie ${movieId}` };
+	
+	const imageMd = getHtmlDoc.el.querySelector('#movie-poster > img')!.attributes['src'];
+
+	const el = getHtmlDoc.el.querySelector('[data-movie-id]')!;
+	const movieId = el.getAttribute('data-movie-id') as string;
+	const title = el.querySelector(".hidden-xs h1")?.text ?? '';
+	const year = el.querySelector(".hidden-xs h2")?.text ?? '';
+	const modalQuality = getHtmlDoc.el.querySelectorAll(".modal-quality").map(it => it.querySelector('span')!.text)
+
+	const movieData: Promise<YIFYApiResponse['data']['movie']> = fetch(
+		`https://yts.mx/api/v2/movie_details.json?movie_id=${movieId}`
+	).then((r) => r.json().then(it => (it as YIFYApiResponse).data.movie));
+
+	return {
+		ok: true,
+		movieId,
+		title,
+		year,
+		imageMd,
+		modalQuality,
+		movieData
+	}
 }
 
-async function doRequest(path: string, fetch: Fetch) {
+async function doRequest(path: string, fetch: Fetch) : Promise<Result<{el: HTMLElement;}>> {
 	const url = baseUrl + path;
 	console.debug(url);
 	const response = await fetch(url);
 	if (response.status !== 200) {
-		throw new Error('Got the wrong status.');
+		return { ok: false, error: response.statusText }
 	}
-	return parse(await response.text());
+	return {ok: true, el: parse(await response.text())};
 }
 
 interface YIFYApiResponse {
